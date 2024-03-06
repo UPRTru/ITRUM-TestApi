@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static api.mapper.WalletMapper.dtoToWallet;
 import static api.mapper.WalletMapper.walletToDto;
 
 @Slf4j
@@ -26,11 +27,10 @@ public class WalletServiceImp implements WalletService {
     @Override
     public String create(WalletDto walletDto) {
         try {
-            WalletDto result = walletToDto(walletRepository.save(walletDto.getValletId(), walletDto.getAmount()));
+            WalletDto result = walletToDto(walletRepository.save(dtoToWallet(walletDto)));
             log.info("Save new wallet: {}", walletDto);
             return result.toString();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             log.info(ERROR_BODY_REQUEST);
             throw new ErrorBodyRequest(ERROR_BODY_REQUEST);
         }
@@ -79,10 +79,14 @@ public class WalletServiceImp implements WalletService {
     }
 
     private Wallet checkWallet(String valletId) {
-        Wallet wallet;
+        Wallet wallet = null;
         try {
             wallet = walletRepository.findByValletId(valletId);
         } catch (Exception e) {
+            log.info("valletId :{} not found.", valletId);
+            throw new NotFoundValletId(valletId);
+        }
+        if (wallet == null) {
             log.info("valletId :{} not found.", valletId);
             throw new NotFoundValletId(valletId);
         }

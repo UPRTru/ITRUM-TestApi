@@ -13,8 +13,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Wallet {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    String valletId;
     @Column(nullable = false, unique = true)
+    String valletId;
+    @Column(nullable = false)
     Long amount;
 }

@@ -1,5 +1,6 @@
 package api;
 
+import api.controller.WalletController;
 import api.dto.BodyRequestDto;
 import api.dto.WalletDto;
 import api.exceptions.ErrorBodyRequest;

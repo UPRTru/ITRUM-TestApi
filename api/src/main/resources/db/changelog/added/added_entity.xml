@@ -6,7 +6,12 @@
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
     <changeSet id="1709592614722-1" author="uprtm">
-        <createTable tableName="wallet">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="wallet"/>
+            </not>
+        </preConditions>
+        <createTable  tableName="wallet">
             <column name="vallet_id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="pk_wallet"/>
             </column>

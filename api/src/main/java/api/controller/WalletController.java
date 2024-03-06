@@ -3,14 +3,16 @@ package api.controller;
 import api.dto.BodyRequestDto;
 import api.dto.WalletDto;
 import api.service.WalletService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
+import javax.validation.Valid;
+
+@RestController
 @RequestMapping("/api/v1")
+@Validated
 @RequiredArgsConstructor
 public class WalletController {
     private final WalletService walletService;
@@ -18,7 +20,6 @@ public class WalletController {
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
     public String create(@RequestBody @Valid WalletDto walletDto) {
-        System.out.println(walletDto);
         return walletService.create(walletDto);
     }
 
