@@ -8,5 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface WalletRepository extends CrudRepository<Wallet, Long> {
-    Wallet findByValletId(String valletId);
+    Wallet findByValletId(UUID valletId);
 }

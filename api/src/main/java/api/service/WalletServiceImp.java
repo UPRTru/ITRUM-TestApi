@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 import static api.mapper.WalletMapper.dtoToWallet;
 import static api.mapper.WalletMapper.walletToDto;
 
@@ -38,7 +40,22 @@ public class WalletServiceImp implements WalletService {
 
     @Transactional
     @Override
-    public String delete(String valletId) {
+    public String createNull(long amount) {
+        try {
+            Wallet wallet = new Wallet();
+            wallet.setAmount(amount);
+            WalletDto result = walletToDto(walletRepository.save(wallet));
+            log.info("Save new wallet: {}", result);
+            return result.toString();
+        } catch (Exception e) {
+            log.info(ERROR_BODY_REQUEST);
+            throw new ErrorBodyRequest("error path request");
+        }
+    }
+
+    @Transactional
+    @Override
+    public String delete(UUID valletId) {
         Wallet wallet = checkWallet(valletId);
         walletRepository.delete(wallet);
         return "deleted: " + valletId;
@@ -53,7 +70,7 @@ public class WalletServiceImp implements WalletService {
             throw new ErrorBodyRequest(ERROR_BODY_REQUEST);
         }
         OperationType ot = findByOperationType(bodyRequestDto.getOperationType());
-        Wallet wallet = checkWallet(bodyRequestDto.getValletId());
+        Wallet wallet = checkWallet(UUID.fromString(bodyRequestDto.getValletId()));
         switch (ot) {
             case DEPOSIT:
                 wallet.setAmount(wallet.getAmount() + bodyRequestDto.getAmount());
@@ -74,11 +91,11 @@ public class WalletServiceImp implements WalletService {
 
     @Transactional(readOnly = true)
     @Override
-    public String get(String valletId) {
+    public String get(UUID valletId) {
         return walletToDto(checkWallet(valletId)).toString();
     }
 
-    private Wallet checkWallet(String valletId) {
+    private Wallet checkWallet(UUID valletId) {
         Wallet wallet = null;
         try {
             wallet = walletRepository.findByValletId(valletId);

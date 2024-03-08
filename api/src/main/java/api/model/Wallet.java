@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.UUID;
+
 @Entity
 @Getter
 @Setter
@@ -13,8 +15,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Wallet {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(nullable = false, unique = true)
-    String valletId;
+    UUID valletId;
     @Column(nullable = false)
     Long amount;
 }

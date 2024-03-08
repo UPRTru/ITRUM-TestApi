@@ -8,9 +8,11 @@ import java.util.UUID;
 public interface WalletService {
     String create(WalletDto walletDto);
 
-    String delete(String valletId);
+    String createNull(long amount);
+
+    String delete(UUID valletId);
 
     String editAmount(BodyRequestDto bodyRequestDto);
 
-    String get(String valletId);
+    String get(UUID valletId);
 }

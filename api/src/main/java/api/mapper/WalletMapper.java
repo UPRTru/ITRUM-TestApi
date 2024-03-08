@@ -9,10 +9,10 @@ import java.util.UUID;
 @UtilityClass
 public class WalletMapper {
     public static Wallet dtoToWallet(WalletDto walletDto) {
-        return new Wallet(walletDto.getValletId(), walletDto.getAmount());
+        return new Wallet(UUID.fromString(walletDto.getValletId()), walletDto.getAmount());
     }
 
     public static WalletDto walletToDto(Wallet wallet) {
-        return new WalletDto(wallet.getValletId(), wallet.getAmount());
+        return new WalletDto(wallet.getValletId().toString(), wallet.getAmount());
     }
 }

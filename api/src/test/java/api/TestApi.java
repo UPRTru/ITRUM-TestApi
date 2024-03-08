@@ -1,8 +1,6 @@
 package api;
 
-import api.controller.WalletController;
 import api.dto.BodyRequestDto;
-import api.dto.WalletDto;
 import api.exceptions.ErrorBodyRequest;
 import api.exceptions.NotFoundOperationType;
 import api.exceptions.NotFoundValletId;
@@ -17,7 +15,6 @@ import org.testng.annotations.Test;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ContextConfiguration
@@ -27,7 +24,7 @@ public class TestApi {
 
     @Test
     public void testNotFoundAndErrorBodyRequest() {
-        String notFound = "00000000-0000-0000-0000-000000000000";
+        UUID notFound = UUID.fromString("00000000-0000-0000-0000-000000000000");
         WalletService walletService = new WalletServiceImp(repository);
         Throwable exception = assertThrows(NotFoundValletId.class, () -> walletService.get(notFound));
         assertEquals("valletId :" + notFound + " not found", exception.getMessage());
@@ -35,7 +32,7 @@ public class TestApi {
         assertEquals("valletId :" + notFound + " not found", exception.getMessage());
 
         BodyRequestDto bodyRequestDto = new BodyRequestDto();
-        bodyRequestDto.setValletId(notFound);
+        bodyRequestDto.setValletId(notFound.toString());
         bodyRequestDto.setOperationType("NULL");
         bodyRequestDto.setAmount(100);
         exception = assertThrows(NotFoundOperationType.class, () -> walletService.editAmount(bodyRequestDto));
