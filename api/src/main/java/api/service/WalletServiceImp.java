@@ -64,9 +64,10 @@ public class WalletServiceImp implements WalletService {
     public String delete(UUID valletId) {
         Wallet wallet = checkWallet(valletId);
         walletRepository.delete(wallet);
+        cache.remove(valletId);
         return "deleted: " + valletId;
     }
-    
+
     @Transactional
     @Override
     public String editAmount(BodyRequestDto bodyRequestDto) {
