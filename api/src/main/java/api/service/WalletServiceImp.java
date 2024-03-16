@@ -2,10 +2,7 @@ package api.service;
 
 import api.dto.BodyRequestDto;
 import api.dto.WalletDto;
-import api.exceptions.ErrorBodyRequest;
-import api.exceptions.NotEnoughMoney;
-import api.exceptions.NotFoundOperationType;
-import api.exceptions.NotFoundValletId;
+import api.exceptions.*;
 import api.model.Wallet;
 import api.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static api.mapper.WalletMapper.dtoToWallet;
 import static api.mapper.WalletMapper.walletToDto;
@@ -24,14 +22,22 @@ import static api.mapper.WalletMapper.walletToDto;
 public class WalletServiceImp implements WalletService {
     private final String ERROR_BODY_REQUEST = "error body request";
     private final WalletRepository walletRepository;
+    private final ConcurrentHashMap<UUID, Wallet> cache = new ConcurrentHashMap<>();
+    //могу попробовать реализовать caffeine cache вместо ConcurrentHashMap
 
     @Transactional
     @Override
     public String create(WalletDto walletDto) {
         try {
-            WalletDto result = walletToDto(walletRepository.save(dtoToWallet(walletDto)));
-            log.info("Save new wallet: {}", walletDto);
-            return result.toString();
+            try {
+                checkWallet(UUID.fromString(walletDto.getValletId()));
+                log.info("Wallet found: {}", walletDto.getValletId());
+                throw new ErrorWalletFound(walletDto.getValletId());
+            } catch (NotFoundValletId e) {
+                WalletDto result = walletToDto(walletRepository.save(dtoToWallet(walletDto)));
+                log.info("Save new wallet: {}", walletDto);
+                return result.toString();
+            }
         } catch (Exception e) {
             log.info(ERROR_BODY_REQUEST);
             throw new ErrorBodyRequest(ERROR_BODY_REQUEST);
@@ -60,7 +66,7 @@ public class WalletServiceImp implements WalletService {
         walletRepository.delete(wallet);
         return "deleted: " + valletId;
     }
-
+    
     @Transactional
     @Override
     public String editAmount(BodyRequestDto bodyRequestDto) {
@@ -71,6 +77,8 @@ public class WalletServiceImp implements WalletService {
         }
         OperationType ot = findByOperationType(bodyRequestDto.getOperationType());
         Wallet wallet = checkWallet(UUID.fromString(bodyRequestDto.getValletId()));
+        cache.putIfAbsent(wallet.getValletId(), wallet);
+        wallet = cache.get(wallet.getValletId());
         switch (ot) {
             case DEPOSIT:
                 wallet.setAmount(wallet.getAmount() + bodyRequestDto.getAmount());
