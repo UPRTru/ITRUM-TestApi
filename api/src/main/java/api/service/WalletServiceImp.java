@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static api.mapper.WalletMapper.dtoToWallet;
 import static api.mapper.WalletMapper.walletToDto;
@@ -22,8 +23,7 @@ import static api.mapper.WalletMapper.walletToDto;
 public class WalletServiceImp implements WalletService {
     private final String ERROR_BODY_REQUEST = "error body request";
     private final WalletRepository walletRepository;
-    private final ConcurrentHashMap<UUID, Wallet> cache = new ConcurrentHashMap<>();
-    //могу попробовать реализовать caffeine cache вместо ConcurrentHashMap
+    private final ConcurrentHashMap<UUID, AtomicLong> cache = new ConcurrentHashMap<>();
 
     @Transactional
     @Override
@@ -78,22 +78,24 @@ public class WalletServiceImp implements WalletService {
         }
         OperationType ot = findByOperationType(bodyRequestDto.getOperationType());
         Wallet wallet = checkWallet(UUID.fromString(bodyRequestDto.getValletId()));
-        cache.putIfAbsent(wallet.getValletId(), wallet);
-        wallet = cache.get(wallet.getValletId());
+        cache.putIfAbsent(wallet.getValletId(), new AtomicLong(wallet.getAmount()));
         switch (ot) {
             case DEPOSIT:
-                wallet.setAmount(wallet.getAmount() + bodyRequestDto.getAmount());
+                cache.get(wallet.getValletId())
+                        .addAndGet(bodyRequestDto.getAmount());
                 break;
             case WITHDRAW:
-                if (wallet.getAmount() < bodyRequestDto.getAmount()) {
-                    long money = bodyRequestDto.getAmount() - wallet.getAmount();
+                if (cache.get(wallet.getValletId()).get() < bodyRequestDto.getAmount()) {
+                    long money = bodyRequestDto.getAmount() - cache.get(wallet.getValletId()).get();
                     log.info("Not enough {} money.", money);
                     throw new NotEnoughMoney(money);
                 } else {
-                    wallet.setAmount(wallet.getAmount() - bodyRequestDto.getAmount());
+                    cache.get(wallet.getValletId())
+                            .addAndGet(-bodyRequestDto.getAmount());
                 }
                 break;
         }
+        wallet.setAmount(cache.get(wallet.getValletId()).get());
         log.info("Edit wallet: {}", wallet);
         return walletToDto(walletRepository.save(wallet)).toString();
     }
@@ -105,7 +107,7 @@ public class WalletServiceImp implements WalletService {
     }
 
     private Wallet checkWallet(UUID valletId) {
-        Wallet wallet = null;
+        Wallet wallet;
         try {
             wallet = walletRepository.findByValletId(valletId);
         } catch (Exception e) {
