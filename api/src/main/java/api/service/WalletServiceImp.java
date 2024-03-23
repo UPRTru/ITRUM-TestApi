@@ -5,13 +5,13 @@ import api.dto.WalletDto;
 import api.exceptions.*;
 import api.model.Wallet;
 import api.repository.WalletRepository;
+import api.сache.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static api.mapper.WalletMapper.dtoToWallet;
@@ -23,7 +23,6 @@ import static api.mapper.WalletMapper.walletToDto;
 public class WalletServiceImp implements WalletService {
     private final String ERROR_BODY_REQUEST = "error body request";
     private final WalletRepository walletRepository;
-    private final ConcurrentHashMap<UUID, AtomicLong> cache = new ConcurrentHashMap<>();
 
     @Transactional
     @Override
@@ -64,7 +63,7 @@ public class WalletServiceImp implements WalletService {
     public String delete(UUID valletId) {
         Wallet wallet = checkWallet(valletId);
         walletRepository.delete(wallet);
-        cache.remove(valletId);
+        Cache.remove(valletId);
         return "deleted: " + valletId;
     }
 
@@ -78,24 +77,21 @@ public class WalletServiceImp implements WalletService {
         }
         OperationType ot = findByOperationType(bodyRequestDto.getOperationType());
         Wallet wallet = checkWallet(UUID.fromString(bodyRequestDto.getValletId()));
-        cache.putIfAbsent(wallet.getValletId(), new AtomicLong(wallet.getAmount()));
+        Cache.putIfAbsent(wallet.getValletId(), new AtomicLong(wallet.getAmount()));
         switch (ot) {
             case DEPOSIT:
-                cache.get(wallet.getValletId())
-                        .addAndGet(bodyRequestDto.getAmount());
+                wallet.setAmount(Cache.addAndGet(wallet.getValletId(), bodyRequestDto.getAmount(), true));
                 break;
             case WITHDRAW:
-                if (cache.get(wallet.getValletId()).get() < bodyRequestDto.getAmount()) {
-                    long money = bodyRequestDto.getAmount() - cache.get(wallet.getValletId()).get();
+                if (Cache.get(wallet.getValletId()) < bodyRequestDto.getAmount()) {
+                    long money = bodyRequestDto.getAmount() - Cache.get(wallet.getValletId());
                     log.info("Not enough {} money.", money);
                     throw new NotEnoughMoney(money);
                 } else {
-                    cache.get(wallet.getValletId())
-                            .addAndGet(-bodyRequestDto.getAmount());
+                    wallet.setAmount(Cache.addAndGet(wallet.getValletId(), bodyRequestDto.getAmount(), false));
                 }
                 break;
         }
-        wallet.setAmount(cache.get(wallet.getValletId()).get());
         log.info("Edit wallet: {}", wallet);
         return walletToDto(walletRepository.save(wallet)).toString();
     }
